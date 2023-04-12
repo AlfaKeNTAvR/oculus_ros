@@ -78,30 +78,17 @@ class Oculus:
 
         # # ORIENTATION
         # Raw quaternion input (Left-handed CS)
-        input_rot_gcs = np.array(
+        input_rot_raw = np.array(
             [
+                data.controller_rot_w,
                 data.controller_rot_x,
                 data.controller_rot_y,
                 data.controller_rot_z,
-                data.controller_rot_w,
             ]
         )
 
         # Transition from Left-handed CS (Unity) to Right-handed CS (Global)
-        input_rot_gcs = utils.left_to_right_handed(input_rot_gcs)
-
-        # More comfortable position (compensation)
-        Qy = T.quaternion_about_axis(
-            math.radians(-45),
-            (0, 1, 0),
-        )
-        input_rot_gcs = T.quaternion_multiply(
-            input_rot_gcs,
-            Qy,
-        )
-
-        # Transition from Global CS to Kinova CS: rotate around y and z axis
-        # self.input_rot_kcs = utils.global_to_kinova(input_rot_gcs)
+        input_rot_gcs = utils.left_to_right_handed(input_rot_raw)
 
         # Publish controller position
         controller_position = Float32MultiArray()
