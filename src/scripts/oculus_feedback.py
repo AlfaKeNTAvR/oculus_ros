@@ -141,6 +141,9 @@ class Oculus:
 
         self.left_buttons_pub.publish(buttons_message)
 
+    def limit_range(self, quaternions):
+        pass
+
 
 if __name__ == '__main__':
 
