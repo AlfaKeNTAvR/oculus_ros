@@ -29,32 +29,34 @@ class Oculus:
 
         # Publishers
         self.input_position_gcs_pub = rospy.Publisher(
-            '/input_position_gcs',
+            'oculus/right/position_gcs',
             Float32MultiArray,
             queue_size=1,
         )
         self.orientation_gcs_pub = rospy.Publisher(
-            '/orientation_gcs',
+            'oculus/right/orientation_gcs',
             Float32MultiArray,
             queue_size=1,
         )
         self.right_buttons_pub = rospy.Publisher(
-            '/right_buttons',
+            'oculus/right/buttons',
             ControllerButtons,
             queue_size=1,
         )
         self.right_joystick_pub = rospy.Publisher(
-            '/right_joystick',
+            'oculus/right/joystick',
             Joystick,
             queue_size=1,
         )
+
+        # TODO: Add left controller position and orientation.
         self.left_buttons_pub = rospy.Publisher(
-            '/left_buttons',
+            'oculus/left/buttons',
             ControllerButtons,
             queue_size=1,
         )
         self.left_joystick_pub = rospy.Publisher(
-            '/left_joystick',
+            'oculus/left/joystick',
             Joystick,
             queue_size=1,
         )
@@ -77,28 +79,28 @@ class Oculus:
         )
 
         # # ORIENTATION
-        # Raw quaternion input (Left-handed CS)
-        input_rot_gcs = np.array(
-            [
-                data.controller_rot_x,
-                data.controller_rot_y,
-                data.controller_rot_z,
-                data.controller_rot_w,
-            ]
-        )
+        # # Raw quaternion input (Left-handed CS)
+        # input_rot_gcs = np.array(
+        #     [
+        #         data.controller_rot_x,
+        #         data.controller_rot_y,
+        #         data.controller_rot_z,
+        #         data.controller_rot_w,
+        #     ]
+        # )
 
-        # Transition from Left-handed CS (Unity) to Right-handed CS (Global)
-        input_rot_gcs = utils.left_to_right_handed(input_rot_gcs)
+        # # Transition from Left-handed CS (Unity) to Right-handed CS (Global).
+        # input_rot_gcs = utils.left_to_right_handed(input_rot_gcs)
 
-        # More comfortable position (compensation)
-        Qy = T.quaternion_about_axis(
-            math.radians(-45),
-            (0, 1, 0),
-        )
-        input_rot_gcs = T.quaternion_multiply(
-            input_rot_gcs,
-            Qy,
-        )
+        # # More comfortable position (compensation)
+        # Qy = T.quaternion_about_axis(
+        #     math.radians(-45),
+        #     (0, 1, 0),
+        # )
+        # input_rot_gcs = T.quaternion_multiply(
+        #     input_rot_gcs,
+        #     Qy,
+        # )
 
         # Transition from Global CS to Kinova CS: rotate around y and z axis
         # self.input_rot_kcs = utils.global_to_kinova(input_rot_gcs)
@@ -108,10 +110,10 @@ class Oculus:
         controller_position.data = input_pos_gcs
         self.input_position_gcs_pub.publish(controller_position)
 
-        # Publish controller orientation
-        controller_orientation = Float32MultiArray()
-        controller_orientation.data = input_rot_gcs
-        self.orientation_gcs_pub.publish(controller_orientation)
+        # # Publish controller orientation
+        # controller_orientation = Float32MultiArray()
+        # controller_orientation.data = input_rot_gcs
+        # self.orientation_gcs_pub.publish(controller_orientation)
 
         # Publish joystick position
         joystick_message = Joystick()
