@@ -4,15 +4,11 @@
 """
 
 import rospy
-import numpy as np
 
 from geometry_msgs.msg import (Pose)
-from std_msgs.msg import (
-    Bool,
-    Float32MultiArray,
-)
+from std_msgs.msg import (Bool)
 
-from oculus.msg import (ControllerButtons)
+from oculus_ros.msg import (ControllerButtons)
 
 
 class OculusKinovaMapping:
@@ -48,8 +44,7 @@ class OculusKinovaMapping:
         self.TRACKING_MODE = tracking_mode
 
         # # Private variables:
-        self.__oculus_position = np.array([0.0, 0.0, 0.0])
-        self.__oculus_orientation = np.array([1.0, 0.0, 0.0, 0.0])
+        self.__oculus_pose = Pose()
         self.__oculus_buttons = ControllerButtons()
         self.__tracking_state_machine_state = 0
 
@@ -57,8 +52,6 @@ class OculusKinovaMapping:
         self.tracking = False
 
         # # ROS node:
-        rospy.init_node(f'oculus_{controller_side}_to_kinova_{robot_name}')
-        rospy.on_shutdown(self.__node_shutdown)
 
         # # Service provider:
 
@@ -78,9 +71,9 @@ class OculusKinovaMapping:
 
         # # Topic subscriber:
         rospy.Subscriber(
-            f'oculus/{self.CONTROLLER_SIDE}/position_gcs',
-            Float32MultiArray,
-            self.__oculus_position_callback,
+            f'oculus/{self.CONTROLLER_SIDE}/pose',
+            Pose,
+            self.__oculus_pose_callback,
         )
         rospy.Subscriber(
             f'oculus/{self.CONTROLLER_SIDE}/buttons',
@@ -91,12 +84,12 @@ class OculusKinovaMapping:
     # # Service handlers:
 
     # # Topic callbacks:
-    def __oculus_position_callback(self, message):
+    def __oculus_pose_callback(self, message):
         """
 
         """
 
-        self.__oculus_position = np.array(message.data)
+        self.__oculus_pose.position = message
 
     def __oculus_buttons_callback(self, message):
         """
@@ -109,13 +102,6 @@ class OculusKinovaMapping:
             self.tracking = self.__oculus_buttons.grip_button
 
     # # Private methods:
-    def __node_shutdown(self):
-        """
-        
-        """
-
-        pass
-
     def __tracking_state_machine(self):
         """
         
@@ -161,37 +147,35 @@ class OculusKinovaMapping:
             self.__tracking_state_machine()
         self.__kinova_tracking.publish(self.tracking)
 
-        self.publish_pose()
+        self.__kinova_pose.publish(self.__oculus_pose)
 
-    def publish_pose(self):
-        """
-        
-        """
 
-        # Form the arm pose message.
-        pose_message = Pose()
-        pose_message.position.x = self.__oculus_position[0]
-        pose_message.position.y = self.__oculus_position[1]
-        pose_message.position.z = self.__oculus_position[2]
+def node_shutdown():
+    """
+    
+    """
 
-        pose_message.orientation.w = self.__oculus_orientation[0]
-        pose_message.orientation.x = self.__oculus_orientation[1]
-        pose_message.orientation.y = self.__oculus_orientation[2]
-        pose_message.orientation.z = self.__oculus_orientation[3]
+    print('\nNode is shutting down...\n')
 
-        self.__kinova_pose.publish(pose_message)
+    print('\nNode is shut down.\n')
 
 
 def main():
     """
-    
+
     """
+
+    # # ROS node:
+    rospy.init_node('oculus_kinova_mapping')
+    rospy.on_shutdown(node_shutdown)
 
     right_arm_mapping = OculusKinovaMapping(
         robot_name='my_gen3',
         controller_side='right',
         tracking_mode='press',
     )
+
+    print('\nOculus Kinova mapping is ready.\n')
 
     while not rospy.is_shutdown():
         right_arm_mapping.main_loop()
