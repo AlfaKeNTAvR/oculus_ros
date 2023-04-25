@@ -1,166 +1,203 @@
 #!/usr/bin/env python
+"""
+
+"""
 
 import rospy
-import transformations as T
 import numpy as np
-import math
+import transformations as T
 
-from positional_control import utils
-from ROS_TCP_Endpoint_msgs.msg import ControllerInput
-from std_msgs.msg import *
-from oculus.msg import Joystick, ControllerButtons
+from geometry_msgs.msg import (Pose)
+
+from oculus.msg import (
+    ControllerInput,
+    ControllerButtons,
+    ControllerJoystick,
+)
 
 
-class Oculus:
+class ControllerFeedback:
+    """
+    
+    """
 
-    def __init__(self):
-
-        # Subscribers
-        rospy.Subscriber(
-            "rightControllerInfo",
-            ControllerInput,
-            self.right_callback,
-        )
-        rospy.Subscriber(
-            "leftControllerInfo",
-            ControllerInput,
-            self.left_callback,
-        )
-
-        # Publishers
-        self.input_position_gcs_pub = rospy.Publisher(
-            'oculus/right/position_gcs',
-            Float32MultiArray,
-            queue_size=1,
-        )
-        self.orientation_gcs_pub = rospy.Publisher(
-            'oculus/right/orientation_gcs',
-            Float32MultiArray,
-            queue_size=1,
-        )
-        self.right_buttons_pub = rospy.Publisher(
-            'oculus/right/buttons',
-            ControllerButtons,
-            queue_size=1,
-        )
-        self.right_joystick_pub = rospy.Publisher(
-            'oculus/right/joystick',
-            Joystick,
-            queue_size=1,
-        )
-
-        # TODO: Add left controller position and orientation.
-        self.left_buttons_pub = rospy.Publisher(
-            'oculus/left/buttons',
-            ControllerButtons,
-            queue_size=1,
-        )
-        self.left_joystick_pub = rospy.Publisher(
-            'oculus/left/joystick',
-            Joystick,
-            queue_size=1,
-        )
-
-    def right_callback(self, data):
-        """Callback function for right controller info. Transform the controller input position from 
-        Left-Handed Coordinate system to Right-handed Coordinate system: 
-        1) swap y and z axis;
-        2) swap x and new y (which was z) to have x facing forward;
-        3) negate new y (which is x) to make it align with global coordinate system.
+    def __init__(
+        self,
+        controller_side='right',
+    ):
+        """
+        
         """
 
-        # Transition from Left-handed CS (Unity) to Right-handed CS (Global) for controller position
-        input_pos_gcs = np.array(
+        if controller_side not in ['right', 'left']:
+            raise ValueError(
+                'controller_side should be either "right" or "left".'
+            )
+
+        # # Private constants:
+
+        # # Public constants:
+        self.CONTROLLER_SIDE = controller_side
+
+        # # Private variables:
+        self.__controller_pose = Pose()
+        self.__controller_buttons = ControllerButtons()
+        self.__controller_joystick = ControllerJoystick()
+
+        # # Public variables:
+
+        # # ROS node:
+
+        # # Service provider:
+
+        # # Service subscriber:
+
+        # # Topic publisher:
+        self.__pose = rospy.Publisher(
+            f'oculus/{self.CONTROLLER_SIDE}/pose',
+            Pose,
+            queue_size=1,
+        )
+        self.__buttons = rospy.Publisher(
+            f'oculus/{self.CONTROLLER_SIDE}/buttons',
+            ControllerButtons,
+            queue_size=1,
+        )
+        self.__joystick = rospy.Publisher(
+            f'oculus/{self.CONTROLLER_SIDE}/joystick',
+            ControllerJoystick,
+            queue_size=1,
+        )
+
+        # # Topic subscriber:
+        rospy.Subscriber(
+            f'{self.CONTROLLER_SIDE}ControllerInfo',
+            ControllerInput,
+            self.__controller_callback,
+        )
+
+    # # Service handlers:
+
+    # # Topic callbacks:
+    def __controller_callback(self, message):
+        """
+
+        """
+
+        self.__controller_pose.position.x = message.controller_pos_x
+        self.__controller_pose.position.y = message.controller_pos_y
+        self.__controller_pose.position.z = message.controller_pos_z
+
+        self.__controller_pose.orientation.w = message.controller_rot_w
+        self.__controller_pose.orientation.x = message.controller_rot_x
+        self.__controller_pose.orientation.y = message.controller_rot_y
+        self.__controller_pose.orientation.z = message.controller_rot_z
+
+        self.__controller_buttons.primary_button = message.primaryButton
+        self.__controller_buttons.secondary_button = message.secondaryButton
+        self.__controller_buttons.grip_button = message.gripButton
+        self.__controller_buttons.trigger_button = message.triggerButton
+        self.__controller_buttons.trigger_value = message.triggerValue
+
+        self.__controller_joystick.button = message.joystickButton
+        self.__controller_joystick.position_x = message.joystick_pos_x
+        self.__controller_joystick.position_y = message.joystick_pos_y
+
+    # # Private methods:
+
+    # # Public methods:
+    def main_loop(self):
+        """
+        
+        """
+
+        self.publish_pose()
+        self.__buttons.publish(self.__controller_buttons)
+        self.__joystick.publish(self.__controller_joystick)
+
+    def publish_pose(self):
+        """
+
+        """
+
+        pose_message = Pose()
+
+        # Transforms the controller input position from Left-Handed Coordinate
+        # system to Right-handed (Global) Coordinate system:
+        # 1. Swap y and z axis.
+        # 2. Swap x and new y (which was z) to have x facing forward.
+        # 3. Negate new y (which is x) to make it align with global coordinate
+        # system.
+        pose_message.position.x = -1 * self.__controller_pose.position.z
+        pose_message.position.y = self.__controller_pose.position.x
+        pose_message.position.z = self.__controller_pose.position.y
+
+        # Converts quaternions from left-handed coordinate system to
+        # right-handed coordinate system:
+        # 1. Convert to Euler angles.
+        orientation_euler = T.euler_from_quaternion(
+            np.array(
+                [
+                    self.__controller_pose.orientation.w,
+                    self.__controller_pose.orientation.x,
+                    self.__controller_pose.orientation.y,
+                    self.__controller_pose.orientation.z,
+                ]
+            )
+        )
+
+        # 2. Swap and negate from (X, Y, Z) to (Z, -X, Y).
+        orientation_euler_gcs = np.array(
             [
-                -1 * data.controller_pos_z,
-                data.controller_pos_x,
-                data.controller_pos_y,
+                orientation_euler[2],
+                -1 * orientation_euler[0],
+                orientation_euler[1],
             ]
         )
 
-        # # ORIENTATION
-        # # Raw quaternion input (Left-handed CS)
-        # input_rot_gcs = np.array(
-        #     [
-        #         data.controller_rot_x,
-        #         data.controller_rot_y,
-        #         data.controller_rot_z,
-        #         data.controller_rot_w,
-        #     ]
-        # )
+        # 3. Convert to a quaternion.
+        orientation_quaternion = T.quaternion_from_euler(
+            orientation_euler_gcs[0],
+            orientation_euler_gcs[1],
+            orientation_euler_gcs[2],
+        )
 
-        # # Transition from Left-handed CS (Unity) to Right-handed CS (Global).
-        # input_rot_gcs = utils.left_to_right_handed(input_rot_gcs)
+        pose_message.orientation.w = orientation_quaternion[0]
+        pose_message.orientation.x = orientation_quaternion[1]
+        pose_message.orientation.y = orientation_quaternion[2]
+        pose_message.orientation.z = orientation_quaternion[3]
 
-        # # More comfortable position (compensation)
-        # Qy = T.quaternion_about_axis(
-        #     math.radians(-45),
-        #     (0, 1, 0),
-        # )
-        # input_rot_gcs = T.quaternion_multiply(
-        #     input_rot_gcs,
-        #     Qy,
-        # )
+        self.__pose.publish(pose_message)
 
-        # Transition from Global CS to Kinova CS: rotate around y and z axis
-        # self.input_rot_kcs = utils.global_to_kinova(input_rot_gcs)
 
-        # Publish controller position
-        controller_position = Float32MultiArray()
-        controller_position.data = input_pos_gcs
-        self.input_position_gcs_pub.publish(controller_position)
+def node_shutdown():
+    """
+    
+    """
 
-        # # Publish controller orientation
-        # controller_orientation = Float32MultiArray()
-        # controller_orientation.data = input_rot_gcs
-        # self.orientation_gcs_pub.publish(controller_orientation)
+    print('\nNode is shutting down...\n')
 
-        # Publish joystick position
-        joystick_message = Joystick()
-        joystick_message.button = data.joystickButton
-        joystick_message.position_x = data.joystick_pos_x
-        joystick_message.position_y = data.joystick_pos_y
+    print('\nNode is shut down.\n')
 
-        self.right_joystick_pub.publish(joystick_message)
 
-        # Publish controller buttons status
-        buttons_message = ControllerButtons()
-        buttons_message.primary_button = data.primaryButton
-        buttons_message.secondary_button = data.secondaryButton
-        buttons_message.grip_button = data.gripButton
-        buttons_message.trigger_button = data.triggerButton
-        buttons_message.trigger_value = data.triggerValue
+def main():
+    """
 
-        self.right_buttons_pub.publish(buttons_message)
+    """
 
-    # Left controller topic callback function
-    def left_callback(self, data):
-        """Callback function for left controller info.
-        """
+    # # ROS node:
+    rospy.init_node('oculus_feedback')
+    rospy.on_shutdown(node_shutdown)
 
-        # Publish joystick position
-        joystick_message = Joystick()
-        joystick_message.button = data.joystickButton
-        joystick_message.position_x = data.joystick_pos_x
-        joystick_message.position_y = data.joystick_pos_y
+    right_controller = ControllerFeedback(controller_side='right')
+    left_controller = ControllerFeedback(controller_side='left')
 
-        self.left_joystick_pub.publish(joystick_message)
+    print('\nOculus feedback is ready.\n')
 
-        # Publish controller buttons status
-        buttons_message = ControllerButtons()
-        buttons_message.primary_button = data.primaryButton
-        buttons_message.secondary_button = data.secondaryButton
-        buttons_message.grip_button = data.gripButton
-        buttons_message.trigger_button = data.triggerButton
-        buttons_message.trigger_value = data.triggerValue
-
-        self.left_buttons_pub.publish(buttons_message)
+    while not rospy.is_shutdown():
+        right_controller.main_loop()
+        left_controller.main_loop()
 
 
 if __name__ == '__main__':
-
-    rospy.init_node("headset_feedback")
-    Headset = Oculus()
-
-    while not rospy.is_shutdown():
-        pass
+    main()
