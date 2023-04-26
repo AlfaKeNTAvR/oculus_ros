@@ -8,7 +8,7 @@ import rospy
 from geometry_msgs.msg import (Pose)
 from std_msgs.msg import (Bool)
 
-from oculus_ros.msg import (ControllerButtons)
+from oculus.msg import (ControllerButtons)
 
 
 class OculusKinovaMapping:
@@ -89,7 +89,13 @@ class OculusKinovaMapping:
 
         """
 
-        self.__oculus_pose.position = message
+        self.__oculus_pose = message
+
+        # TODO: Proper orientation support.
+        self.__oculus_pose.orientation.w = 0.6532815
+        self.__oculus_pose.orientation.x = -0.2705981
+        self.__oculus_pose.orientation.y = -0.2705981
+        self.__oculus_pose.orientation.z = 0.6532815
 
     def __oculus_buttons_callback(self, message):
         """
@@ -157,6 +163,8 @@ def node_shutdown():
 
     print('\nNode is shutting down...\n')
 
+    # TODO: Stop arm motion.
+
     print('\nNode is shut down.\n')
 
 
@@ -175,7 +183,7 @@ def main():
         tracking_mode='press',
     )
 
-    print('\nOculus Kinova mapping is ready.\n')
+    print('\nOculus-Kinova mapping is ready.\n')
 
     while not rospy.is_shutdown():
         right_arm_mapping.main_loop()
