@@ -9,6 +9,10 @@ from geometry_msgs.msg import (Pose)
 from std_msgs.msg import (Bool)
 
 from oculus.msg import (ControllerButtons)
+from kinova_positional_control.srv import (
+    GripperForceGrasping,
+    GripperPosition,
+)
 
 
 class OculusKinovaMapping:
@@ -46,7 +50,9 @@ class OculusKinovaMapping:
         # # Private variables:
         self.__oculus_pose = Pose()
         self.__oculus_buttons = ControllerButtons()
+
         self.__tracking_state_machine_state = 0
+        self.__gripper_state_machine_state = 0
 
         # # Public variables:
         self.tracking = False
@@ -56,6 +62,14 @@ class OculusKinovaMapping:
         # # Service provider:
 
         # # Service subscriber:
+        self.__gripper_force_grasping = rospy.ServiceProxy(
+            f'{self.ROBOT_NAME}/gripper/force_grasping',
+            GripperForceGrasping,
+        )
+        self.__gripper_position = rospy.ServiceProxy(
+            f'{self.ROBOT_NAME}/gripper/position',
+            GripperPosition,
+        )
 
         # # Topic publisher:
         self.__kinova_tracking = rospy.Publisher(
@@ -143,6 +157,29 @@ class OculusKinovaMapping:
         ):
             self.__tracking_state_machine_state = 0
 
+    def __gripper_state_machine(self, button):
+        """
+        
+        """
+
+        # State 0: Button was pressed.
+        if (self.__gripper_state_machine_state == 0 and button):
+            self.__gripper_force_grasping(0.0)  # 0.0 for default current.
+            self.__gripper_state_machine_state = 1
+
+        # State 1: Button was released. Force grasping is activated.
+        elif (self.__gripper_state_machine_state == 1 and not button):
+            self.__gripper_state_machine_state = 2
+
+        # State 2: Button was pressed. Open the gripper.
+        elif (self.__gripper_state_machine_state == 2 and button):
+            self.__gripper_position(0.0)  # 0.0 for open position.
+            self.__gripper_state_machine_state = 3
+
+        # State 3: Button was released.
+        elif (self.__gripper_state_machine_state == 3 and not button):
+            self.__gripper_state_machine_state = 0
+
     # # Public methods:
     def main_loop(self):
         """
@@ -150,10 +187,11 @@ class OculusKinovaMapping:
         """
 
         if self.TRACKING_MODE == 'press':
-            self.__tracking_state_machine()
-        self.__kinova_tracking.publish(self.tracking)
 
+        self.__kinova_tracking.publish(self.tracking)
         self.__kinova_pose.publish(self.__oculus_pose)
+
+        self.__gripper_state_machine(self.__oculus_buttons.trigger_button)
 
 
 def node_shutdown():
