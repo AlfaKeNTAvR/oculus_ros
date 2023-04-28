@@ -56,6 +56,9 @@ class OculusMobileBaseMapping:
 
         self.__previous_time = rospy.get_time()
 
+        self.__joystick_button_state = 0
+        self.__control_mode = 'full'
+
         # # Public variables:
 
         # # ROS node:
@@ -181,6 +184,39 @@ class OculusMobileBaseMapping:
 
         return current_velocity
 
+    def __joystick_button_state_machine(self):
+        """
+        
+        """
+
+        # State 0: Joystick button was pressed. Rotation only mode.
+        if (
+            self.__oculus_joystick.button and self.__joystick_button_state == 0
+        ):
+            self.__control_mode = 'rotation'
+            self.__joystick_button_state = 1
+
+        # State 1: Joystick button was released.
+        elif (
+            not self.__oculus_joystick.button
+            and self.__joystick_button_state == 1
+        ):
+            self.__joystick_button_state = 2
+
+        # State 2: Joystick button was pressed. Normal control mode.
+        if (
+            self.__oculus_joystick.button and self.__joystick_button_state == 2
+        ):
+            self.__control_mode = 'full'
+            self.__joystick_button_state = 3
+
+        # State 3: Joystick button was released.
+        elif (
+            not self.__oculus_joystick.button
+            and self.__joystick_button_state == 3
+        ):
+            self.__joystick_button_state = 0
+
     # # Public methods:
     def main_loop(self):
         """
@@ -213,6 +249,11 @@ class OculusMobileBaseMapping:
         twist_message = Twist()
         twist_message.linear.x = linear_velocity
         twist_message.angular.z = rotation_velocity
+
+        self.__joystick_button_state_machine()
+
+        if self.__control_mode == 'rotation':
+            twist_message.linear.x = 0.0
 
         self.__mobilebase_twist.publish(twist_message)
 
