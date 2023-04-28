@@ -104,6 +104,52 @@ class OculusMobileBaseMapping:
         self.__oculus_buttons = message
 
     # # Private methods:
+    def __check_dead_zones(self):
+        """
+        
+        """
+
+        updated_joystick = np.array(
+            [
+                self.__oculus_joystick.position_x,
+                self.__oculus_joystick.position_y,
+            ]
+        )
+
+        dead_zone_margins = {
+            'up': 15,
+            'down': 25,
+            'left_right': 0,
+        }
+
+        angle = math.degrees(
+            math.atan2(updated_joystick[1], updated_joystick[0])
+        )
+
+        if (
+            (
+                angle < 90 + dead_zone_margins['up']
+                and angle > 90 - dead_zone_margins['up']
+            ) or (
+                angle > -90 - dead_zone_margins['down']
+                and angle < -90 + dead_zone_margins['down']
+            )
+        ):
+            updated_joystick[0] = 0.0
+
+        elif (
+            (
+                angle < 0 + dead_zone_margins['left_right']
+                and angle > 0 - dead_zone_margins['down']
+            ) or (
+                angle < -180 + dead_zone_margins['left_right']
+                and angle > 180 - dead_zone_margins['down']
+            )
+        ):
+            updated_joystick[1] = 0.0
+
+        return updated_joystick
+
     def __set_target_velocities(self):
         """
         
@@ -112,10 +158,12 @@ class OculusMobileBaseMapping:
         self.__target_linear_velocity = 0.0
         self.__target_rotation_velocity = 0.0
 
+        updated_joystick = self.__check_dead_zones()
+
         # Linear velocity.
         if abs(self.__oculus_joystick.position_y) > 0.01:  # Noisy joystick.
             self.__target_linear_velocity = np.interp(
-                round(self.__oculus_joystick.position_y, 4),
+                round(updated_joystick[1], 4),
                 [-1.0, 1.0],
                 [-0.5 * self.MAX_LINEAR_SPEED, self.MAX_LINEAR_SPEED],
             )
@@ -123,7 +171,7 @@ class OculusMobileBaseMapping:
         # Rotation velocity.
         if abs(self.__oculus_joystick.position_x) > 0.01:  # Noisy joystick.
             self.__target_rotation_velocity = np.interp(
-                round(self.__oculus_joystick.position_x, 4),
+                round(updated_joystick[0], 4),
                 [-1.0, 1.0],
                 [self.MAX_ROTATION_SPEED, -self.MAX_ROTATION_SPEED],
             )
