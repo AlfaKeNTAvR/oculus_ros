@@ -53,6 +53,8 @@ class OculusKinovaMapping:
 
         self.__tracking_state_machine_state = 0
         self.__gripper_state_machine_state = 0
+        self.__mode_state_machine_state = 0
+        self.__control_mode = 'position'
 
         # # Public variables:
         self.tracking = False
@@ -103,13 +105,19 @@ class OculusKinovaMapping:
 
         """
 
-        self.__oculus_pose = message
+        if self.__control_mode == 'full':
+            self.__oculus_pose = message
 
-        # TODO: Proper orientation support.
-        self.__oculus_pose.orientation.w = 0.6532815
-        self.__oculus_pose.orientation.x = -0.2705981
-        self.__oculus_pose.orientation.y = -0.2705981
-        self.__oculus_pose.orientation.z = 0.6532815
+        elif self.__control_mode == 'position':
+            self.__oculus_pose.position = message.position
+            # TODO: Proper orientation support.
+            self.__oculus_pose.orientation.w = 0.6532815
+            self.__oculus_pose.orientation.x = -0.2705981
+            self.__oculus_pose.orientation.y = -0.2705981
+            self.__oculus_pose.orientation.z = 0.6532815
+
+        elif self.__control_mode == 'orientation':
+            self.__oculus_pose.orientation = message.orientation
 
     def __oculus_buttons_callback(self, message):
         """
@@ -122,39 +130,27 @@ class OculusKinovaMapping:
             self.tracking = self.__oculus_buttons.grip_button
 
     # # Private methods:
-    def __tracking_state_machine(self):
+    def __tracking_state_machine(self, button):
         """
         
         """
 
-        # State 0: Trigger button was pressed.
-        if (
-            self.__oculus_buttons.grip_button
-            and self.__tracking_state_machine_state == 0
-        ):
+        # State 0: Grip button was pressed.
+        if (self.__tracking_state_machine_state == 0 and button):
             self.__tracking_state_machine_state = 1
 
-        # State 1: Trigger button was released. Tracking is activated.
-        elif (
-            not self.__oculus_buttons.grip_button
-            and self.__tracking_state_machine_state == 1
-        ):
+        # State 1: Grip button was released. Tracking is activated.
+        elif (self.__tracking_state_machine_state == 1 and not button):
             self.tracking = True
             self.__tracking_state_machine_state = 2
 
-        # State 2: Trigger button was pressed. Tracking is deactivated.
-        elif (
-            self.__oculus_buttons.grip_button
-            and self.__tracking_state_machine_state == 2
-        ):
+        # State 2: Grip button was pressed. Tracking is deactivated.
+        elif (self.__tracking_state_machine_state == 2 and button):
             self.tracking = False
             self.__tracking_state_machine_state = 3
 
-        # State 3: Trigger button was released.
-        elif (
-            not self.__oculus_buttons.grip_button
-            and self.__tracking_state_machine_state == 3
-        ):
+        # State 3: Grip button was released.
+        elif (self.__tracking_state_machine_state == 3 and not button):
             self.__tracking_state_machine_state = 0
 
     def __gripper_state_machine(self, button):
@@ -180,6 +176,29 @@ class OculusKinovaMapping:
         elif (self.__gripper_state_machine_state == 3 and not button):
             self.__gripper_state_machine_state = 0
 
+    def __mode_state_machine(self, button):
+        """
+        
+        """
+
+        # State 0: Button was pressed.
+        if (self.__mode_state_machine_state == 0 and button):
+            self.__control_mode = 'position'
+            self.__mode_state_machine_state = 1
+
+        # State 1: Button was released.
+        elif (self.__mode_state_machine_state == 1 and not button):
+            self.__mode_state_machine_state = 3
+
+        # State 2: Button was pressed.
+        elif (self.__mode_state_machine_state == 3 and button):
+            self.__control_mode = 'full'
+            self.__mode_state_machine_state = 4
+
+        # State 3: Button was released.
+        elif (self.__mode_state_machine_state == 4 and not button):
+            self.__mode_state_machine_state = 0
+
     # # Public methods:
     def main_loop(self):
         """
@@ -187,11 +206,13 @@ class OculusKinovaMapping:
         """
 
         if self.TRACKING_MODE == 'press':
+            self.__tracking_state_machine(self.__oculus_buttons.grip_button)
 
         self.__kinova_tracking.publish(self.tracking)
         self.__kinova_pose.publish(self.__oculus_pose)
 
         self.__gripper_state_machine(self.__oculus_buttons.trigger_button)
+        self.__mode_state_machine(self.__oculus_buttons.primary_button)
 
 
 def node_shutdown():
