@@ -26,6 +26,7 @@ class OculusKinovaMapping:
         robot_name='my_gen3',
         controller_side='right',
         tracking_mode='press',
+        headset_mode='table',
     ):
         """
         
@@ -47,6 +48,7 @@ class OculusKinovaMapping:
         self.ROBOT_NAME = robot_name
         self.CONTROLLER_SIDE = controller_side
         self.TRACKING_MODE = tracking_mode
+        self.HEADSET_MODE = headset_mode
 
         # # Private variables:
         self.__oculus_pose = {
@@ -124,6 +126,15 @@ class OculusKinovaMapping:
         """
 
         """
+
+        negation = 1
+
+        if self.HEADSET_MODE == 'head':
+            negation = -1
+
+        self.__oculus_pose['position'][0] = negation * message.position.x
+        self.__oculus_pose['position'][1] = negation * message.position.y
+        self.__oculus_pose['position'][2] = message.position.z
 
         self.__oculus_pose['position'][0] = message.position.x
         self.__oculus_pose['position'][1] = message.position.y
@@ -334,6 +345,7 @@ def main():
         robot_name='my_gen3',
         controller_side='right',
         tracking_mode='press',
+        headset_mode='table',
     )
 
     print('\nOculus-Kinova mapping is ready.\n')
