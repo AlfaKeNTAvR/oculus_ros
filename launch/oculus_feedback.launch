@@ -2,5 +2,5 @@
 <launch>=
     <include file="$(find unity_ros)/launch/endpoint.launch"/>
 
-    <node pkg="oculus" type="oculus_feedback.py" name="oculus_feedback" output="screen"/>
+    <node pkg="oculus_ros" type="oculus_feedback.py" name="oculus_feedback" output="screen"/>
 </launch>

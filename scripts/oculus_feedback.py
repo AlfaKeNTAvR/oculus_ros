@@ -9,7 +9,7 @@ import transformations as T
 
 from geometry_msgs.msg import (Pose)
 
-from oculus.msg import (
+from oculus_ros.msg import (
     ControllerInput,
     ControllerButtons,
     ControllerJoystick,
