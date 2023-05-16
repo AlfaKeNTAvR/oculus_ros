@@ -6,6 +6,7 @@
 import rospy
 import numpy as np
 import transformations as T
+import math
 
 from geometry_msgs.msg import (Pose)
 
@@ -134,32 +135,17 @@ class ControllerFeedback:
 
         # Converts quaternions from left-handed coordinate system to
         # right-handed coordinate system:
-        # 1. Convert to Euler angles.
-        orientation_euler = T.euler_from_quaternion(
-            np.array(
-                [
-                    self.__controller_pose.orientation.w,
-                    self.__controller_pose.orientation.x,
-                    self.__controller_pose.orientation.y,
-                    self.__controller_pose.orientation.z,
-                ]
-            )
-        )
-
-        # 2. Swap and negate from (X, Y, Z) to (Z, -X, Y).
-        orientation_euler_gcs = np.array(
+        # 1. W stays the same.
+        # 2. New X is negative old Z.
+        # 3. New Y is old X.
+        # 4. New Z is negative old Y.
+        orientation_quaternion = np.array(
             [
-                orientation_euler[2],
-                -1 * orientation_euler[0],
-                orientation_euler[1],
+                self.__controller_pose.orientation.w,
+                -self.__controller_pose.orientation.z,
+                self.__controller_pose.orientation.x,
+                -self.__controller_pose.orientation.y,
             ]
-        )
-
-        # 3. Convert to a quaternion.
-        orientation_quaternion = T.quaternion_from_euler(
-            orientation_euler_gcs[0],
-            orientation_euler_gcs[1],
-            orientation_euler_gcs[2],
         )
 
         pose_message.orientation.w = orientation_quaternion[0]
@@ -196,7 +182,7 @@ def main():
 
     while not rospy.is_shutdown():
         right_controller.main_loop()
-        left_controller.main_loop()
+        # left_controller.main_loop()
 
 
 if __name__ == '__main__':
