@@ -5,8 +5,7 @@
 
 import rospy
 import numpy as np
-import transformations as T
-import math
+import transformations
 
 from geometry_msgs.msg import (Pose)
 
@@ -47,32 +46,30 @@ class ControllerFeedback:
 
         # # Public variables:
 
-        # # ROS node:
-
         # # Service provider:
 
         # # Service subscriber:
 
         # # Topic publisher:
         self.__pose = rospy.Publisher(
-            f'oculus/{self.CONTROLLER_SIDE}/pose',
+            f'/{self.CONTROLLER_SIDE}/oculus/pose',
             Pose,
             queue_size=1,
         )
         self.__buttons = rospy.Publisher(
-            f'oculus/{self.CONTROLLER_SIDE}/buttons',
+            f'/{self.CONTROLLER_SIDE}/oculus/buttons',
             ControllerButtons,
             queue_size=1,
         )
         self.__joystick = rospy.Publisher(
-            f'oculus/{self.CONTROLLER_SIDE}/joystick',
+            f'/{self.CONTROLLER_SIDE}/oculus/joystick',
             ControllerJoystick,
             queue_size=1,
         )
 
         # # Topic subscriber:
         rospy.Subscriber(
-            f'{self.CONTROLLER_SIDE}ControllerInfo',
+            f'/{self.CONTROLLER_SIDE}ControllerInfo',
             ControllerInput,
             self.__controller_callback,
         )
@@ -155,15 +152,18 @@ class ControllerFeedback:
 
         self.__pose.publish(pose_message)
 
+    def node_shutdown(self):
+        """
+        
+        """
 
-def node_shutdown():
-    """
-    
-    """
+        print(
+            f'\n/{self.CONTROLLER_SIDE}/controller_feedback: node is shutting down...\n'
+        )
 
-    print('\nNode is shutting down...\n')
-
-    print('\nNode is shut down.\n')
+        print(
+            f'\n/{self.CONTROLLER_SIDE}/controller_feedback: node is shut down.\n'
+        )
 
 
 def main():
@@ -171,18 +171,21 @@ def main():
 
     """
 
-    # # ROS node:
-    rospy.init_node('oculus_feedback')
-    rospy.on_shutdown(node_shutdown)
+    rospy.init_node('controller_feedback')
 
-    right_controller = ControllerFeedback(controller_side='right')
-    left_controller = ControllerFeedback(controller_side='left')
+    controller_side = rospy.get_param(
+        param_name=f'{rospy.get_name()}/controller_side',
+        default='right',
+    )
 
-    print('\nOculus feedback is ready.\n')
+    controller = ControllerFeedback(controller_side=controller_side)
+
+    rospy.on_shutdown(controller.node_shutdown)
+
+    print(f'\n/{controller_side}/controller_feedback: ready.\n')
 
     while not rospy.is_shutdown():
-        right_controller.main_loop()
-        # left_controller.main_loop()
+        controller.main_loop()
 
 
 if __name__ == '__main__':
