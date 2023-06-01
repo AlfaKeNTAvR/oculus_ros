@@ -23,7 +23,7 @@ class ControllerFeedback:
 
     def __init__(
         self,
-        controller_side='right',
+        controller_side,
     ):
         """
         
@@ -126,8 +126,8 @@ class ControllerFeedback:
         # 2. Swap x and new y (which was z) to have x facing forward.
         # 3. Negate new y (which is x) to make it align with global coordinate
         # system.
-        pose_message.position.x = -1 * self.__controller_pose.position.z
-        pose_message.position.y = self.__controller_pose.position.x
+        pose_message.position.x = self.__controller_pose.position.z
+        pose_message.position.y = -1 * self.__controller_pose.position.x
         pose_message.position.z = self.__controller_pose.position.y
 
         # Converts quaternions from left-handed coordinate system to
