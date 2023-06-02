@@ -157,12 +157,12 @@ class ControllerFeedback:
         
         """
 
-        print(
-            f'\n/{self.CONTROLLER_SIDE}/controller_feedback: node is shutting down...\n'
+        rospy.loginfo_once(
+            f'/{self.CONTROLLER_SIDE}/controller_feedback: node is shutting down...',
         )
 
-        print(
-            f'\n/{self.CONTROLLER_SIDE}/controller_feedback: node is shut down.\n'
+        rospy.loginfo_once(
+            f'/{self.CONTROLLER_SIDE}/controller_feedback: node has shut down.',
         )
 
 
@@ -171,7 +171,10 @@ def main():
 
     """
 
-    rospy.init_node('controller_feedback')
+    rospy.init_node(
+        'controller_feedback',
+        log_level=rospy.INFO,  # TODO: Make this a launch file parameter.
+    )
 
     controller_side = rospy.get_param(
         param_name=f'{rospy.get_name()}/controller_side',
@@ -182,7 +185,9 @@ def main():
 
     rospy.on_shutdown(controller.node_shutdown)
 
-    print(f'\n/{controller_side}/controller_feedback: ready.\n')
+    rospy.loginfo_once(
+        f'\033[92m/{controller_side}/controller_feedback: ready.\033[0m',
+    )
 
     while not rospy.is_shutdown():
         controller.main_loop()
