@@ -7,6 +7,7 @@ import rospy
 import numpy as np
 import transformations
 
+from std_msgs.msg import (Bool)
 from geometry_msgs.msg import (Pose)
 
 from oculus_ros.msg import (
@@ -46,23 +47,47 @@ class ControllerFeedback:
 
         # # Public variables:
 
+        # # Initialization and dependency status topics:
+        self.__is_initialized = False
+        self.__dependency_initialized = False
+
+        self.__node_is_initialized = rospy.Publisher(
+            f'/{self.CONTROLLER_SIDE}/controller_feedback/is_initialized',
+            Bool,
+            queue_size=1,
+        )
+
+        # TODO: Add unity_ros as a dependency.
+        self.__dependency_status = {
+            'unity_ros': False,
+        }
+
+        self.__dependency_status_topics = {
+            'unity_ros':
+                rospy.Subscriber(
+                    f'/{self.CONTROLLER_SIDE}ControllerInfo',
+                    ControllerInput,
+                    self.__controller_callback,
+                ),
+        }
+
         # # Service provider:
 
         # # Service subscriber:
 
         # # Topic publisher:
         self.__pose = rospy.Publisher(
-            f'/{self.CONTROLLER_SIDE}/oculus/pose',
+            f'/{self.CONTROLLER_SIDE}/controller_feedback/pose',
             Pose,
             queue_size=1,
         )
         self.__buttons = rospy.Publisher(
-            f'/{self.CONTROLLER_SIDE}/oculus/buttons',
+            f'/{self.CONTROLLER_SIDE}/controller_feedback/buttons',
             ControllerButtons,
             queue_size=1,
         )
         self.__joystick = rospy.Publisher(
-            f'/{self.CONTROLLER_SIDE}/oculus/joystick',
+            f'/{self.CONTROLLER_SIDE}/controller_feedback/joystick',
             ControllerJoystick,
             queue_size=1,
         )
@@ -73,6 +98,8 @@ class ControllerFeedback:
             ControllerInput,
             self.__controller_callback,
         )
+
+    # # Dependency status callbacks:
 
     # # Service handlers:
 
@@ -101,13 +128,90 @@ class ControllerFeedback:
         self.__controller_joystick.position_x = message.joystick_pos_x
         self.__controller_joystick.position_y = message.joystick_pos_y
 
+        self.__dependency_status['unity_ros'] = True
+
     # # Private methods:
+    def __check_initialization(self):
+        """Monitors required criteria and sets is_initialized variable.
+
+        Monitors nodes' dependency status by checking if dependency's
+        is_initialized topic has at most one publisher (this ensures that
+        dependency node is alive and does not have any duplicates) and that it
+        publishes True. If dependency's status was True, but get_num_connections
+        is not equal to 1, this means that the connection is lost and emergency
+        actions should be performed.
+
+        Once all dependencies are initialized and additional criteria met, the
+        nodes is_initialized status changes to True. This status can change to
+        False any time to False if some criteria are no longer met.
+        
+        """
+
+        self.__dependency_initialized = True
+
+        for key in self.__dependency_status:
+            if self.__dependency_status_topics[key].get_num_connections() != 1:
+                if self.__dependency_status[key]:
+                    rospy.logerr(
+                        (
+                            f'/{self.CONTROLLER_SIDE}/controller_feedback: '
+                            f'lost connection to {key}!'
+                        )
+                    )
+
+                    # # Emergency actions on lost connection:
+                    # NOTE (optionally): Add code, which needs to be executed if
+                    # connection to any of dependencies was lost.
+
+                self.__dependency_status[key] = False
+
+            if not self.__dependency_status[key]:
+                self.__dependency_initialized = False
+
+        if not self.__dependency_initialized:
+            waiting_for = ''
+            for key in self.__dependency_status:
+                if not self.__dependency_status[key]:
+                    waiting_for += f'\n- waiting for {key}...'
+
+            rospy.logwarn_throttle(
+                15,
+                (
+                    f'/{self.CONTROLLER_SIDE}/controller_feedback:'
+                    f'{waiting_for}'
+                    # f'\nMake sure those dependencies are running properly!'
+                ),
+            )
+
+        # NOTE: Add more initialization criterea if needed.
+        if (self.__dependency_initialized):
+            if not self.__is_initialized:
+                rospy.loginfo(
+                    f'\033[92m/{self.CONTROLLER_SIDE}/controller_feedback: ready.\033[0m',
+                )
+
+                self.__is_initialized = True
+
+        else:
+            if self.__is_initialized:
+                # NOTE (optionally): Add code, which needs to be executed if the
+                # nodes's status changes from True to False.
+                pass
+
+            self.__is_initialized = False
+
+        self.__node_is_initialized.publish(self.__is_initialized)
 
     # # Public methods:
     def main_loop(self):
         """
         
         """
+
+        self.__check_initialization()
+
+        if not self.__is_initialized:
+            return
 
         self.publish_pose()
         self.__buttons.publish(self.__controller_buttons)
@@ -176,6 +280,9 @@ def main():
         log_level=rospy.INFO,  # TODO: Make this a launch file parameter.
     )
 
+    rospy.loginfo('\n\n\n\n\n')  # Add whitespaces to separate logs.
+
+    # # ROS parameters:
     controller_side = rospy.get_param(
         param_name=f'{rospy.get_name()}/controller_side',
         default='right',
@@ -184,10 +291,6 @@ def main():
     controller = ControllerFeedback(controller_side=controller_side)
 
     rospy.on_shutdown(controller.node_shutdown)
-
-    rospy.loginfo_once(
-        f'\033[92m/{controller_side}/controller_feedback: ready.\033[0m',
-    )
 
     while not rospy.is_shutdown():
         controller.main_loop()
