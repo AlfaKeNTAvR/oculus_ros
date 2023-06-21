@@ -1,11 +1,24 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="controller_side" default="right"/>
+    <!-- ============================ SETTINGS ============================= -->
+
+    <arg 
+    name="controller_side" 
+    default="right"/>
+
+    <!-- ======================== END OF SETTINGS ========================== -->
+
 
     <!-- Controller feedback: -->
     <group ns="/$(arg controller_side)">
-        <node pkg="oculus_ros" type="controller_feedback.py" name="controller_feedback" output="screen">
-            <param name="controller_side" value="$(arg controller_side)"/>
+        <node 
+        pkg="oculus_ros" 
+        type="controller_feedback.py" 
+        name="controller_feedback" 
+        output="screen">
+            <param 
+            name="controller_side" 
+            value="$(arg controller_side)"/>
         </node>
     </group>
 </launch>
