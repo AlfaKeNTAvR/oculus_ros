@@ -6,14 +6,15 @@ TODO: Add detailed description.
 Author (s): 
     1. Nikita Boguslavskii (bognik3@gmail.com), Human-Inspired Robotics (HiRo)
        lab, Worcester Polytechnic Institute (WPI), 2023.
-    2. Lorena Genua (lorenagenua@gmail.com), Human-Inspired Robotics (HiRo)
+    2. Lorena Genua (lorena.genua@gmail.com), Human-Inspired Robotics (HiRo)
        lab, Worcester Polytechnic Institute (WPI), 2023.
     
 """
 
 import rospy
 import numpy as np
-import transformations
+import math
+from ast import (literal_eval)
 
 from std_msgs.msg import (Bool)
 from geometry_msgs.msg import (Pose)
@@ -33,6 +34,8 @@ class ControllerFeedback:
     def __init__(
         self,
         controller_side,
+        enable_joystick_deadzones,
+        joystick_deadzones,
     ):
         """
         
@@ -44,6 +47,16 @@ class ControllerFeedback:
             )
 
         # # Private constants:
+        self.__ENABLE_JOYSTICK_DEADZONES = enable_joystick_deadzones
+        # Joystick dead zones for each of the directions [degrees]. The total
+        # dead zone for each direction is the value multiplied by 2 (to positive
+        # and negative directions).
+        self.__JOYSTICK_DEADZONES = {
+            'up': joystick_deadzones[0],
+            'down': joystick_deadzones[1],
+            'right': joystick_deadzones[2],
+            'left': joystick_deadzones[3],
+        }
 
         # # Public constants:
         self.CONTROLLER_SIDE = controller_side
@@ -65,7 +78,6 @@ class ControllerFeedback:
             queue_size=1,
         )
 
-        # TODO: Add unity_ros as a dependency.
         self.__dependency_status = {
             'unity_ros': False,
         }
@@ -135,6 +147,15 @@ class ControllerFeedback:
         self.__controller_joystick.button = message.joystickButton
         self.__controller_joystick.position_x = message.joystick_pos_x
         self.__controller_joystick.position_y = message.joystick_pos_y
+
+        if self.__ENABLE_JOYSTICK_DEADZONES:
+            (
+                self.__controller_joystick.position_x,
+                self.__controller_joystick.position_y
+            ) = self.__joystick_dead_zones(
+                message.joystick_pos_x,
+                message.joystick_pos_y,
+            )
 
         self.__dependency_status['unity_ros'] = True
 
@@ -209,6 +230,58 @@ class ControllerFeedback:
             self.__is_initialized = False
 
         self.__node_is_initialized.publish(self.__is_initialized)
+
+    def __joystick_dead_zones(
+        self,
+        position_x,
+        position_y,
+    ):
+        """
+        
+        """
+
+        updated_joystick = np.array([
+            position_x,
+            position_y,
+        ])
+
+        # Joystick is inactive:
+        if position_x == 0 and position_y == 0:
+            return updated_joystick
+
+        angle = math.degrees(
+            math.atan2(updated_joystick[1], updated_joystick[0])
+        )
+
+        # UP deadzone (x = 0 , y = 1):
+        if (
+            angle < 90 + self.__JOYSTICK_DEADZONES['up']
+            and angle > 90 - self.__JOYSTICK_DEADZONES['up']
+        ):
+            updated_joystick[0] = 0.0
+
+        # DOWN deadzone (x = 0 , y = -1):
+        elif (
+            angle > -90 - self.__JOYSTICK_DEADZONES['down']
+            and angle < -90 + self.__JOYSTICK_DEADZONES['down']
+        ):
+            updated_joystick[0] = 0.0
+
+        # RIGHT deadzone (x = 1 , y = 0):
+        elif (
+            angle < 0 + self.__JOYSTICK_DEADZONES['right']
+            and angle > 0 - self.__JOYSTICK_DEADZONES['down']
+        ):
+            updated_joystick[1] = 0.0
+
+        # LEFT deadzone (x = -1 , y = 0):
+        elif (
+            angle < -180 + self.__JOYSTICK_DEADZONES['left']
+            or angle > 180 - self.__JOYSTICK_DEADZONES['down']
+        ):
+            updated_joystick[1] = 0.0
+
+        return updated_joystick
 
     # # Public methods:
     def main_loop(self):
@@ -296,7 +369,22 @@ def main():
         default='right',
     )
 
-    controller = ControllerFeedback(controller_side=controller_side)
+    enable_joystick_deadzones = rospy.get_param(
+        param_name=f'{rospy.get_name()}/enable_joystick_deadzones',
+        default=False,
+    )
+    joystick_deadzones = literal_eval(
+        rospy.get_param(
+            param_name=f'{rospy.get_name()}/joystick_deadzones',
+            default='[15, 15, 15, 15]',
+        )
+    )
+
+    controller = ControllerFeedback(
+        controller_side=controller_side,
+        enable_joystick_deadzones=enable_joystick_deadzones,
+        joystick_deadzones=joystick_deadzones,
+    )
 
     rospy.on_shutdown(controller.node_shutdown)
 

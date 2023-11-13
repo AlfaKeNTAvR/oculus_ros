@@ -2,9 +2,26 @@
 <launch>
     <!-- ============================ SETTINGS ============================= -->
 
+    <!-- Controller side: can be either "right" or "right". -->
     <arg 
     name="controller_side" 
     default="right"/>
+
+    <!-- Enable joystick deadzones: if set to "true" then joystick deadzones
+    will be activated, this helps to identify correct joystick dirrection even
+    if the joystick is not perfecty facing top, bottom, right, left. -->
+    <arg 
+    name="enable_joystick_deadzones" 
+    default="false"/>
+
+    <!-- Joystick deadzones [degrees]: if enable joystick deadzones is set to
+    "true" then this array values will be used as deadzones: 
+    0 - up, 1 - down, 2 - right, 3 - left. 
+    The total deadzone for each direction is the corresponding value multiplied
+    by 2. -->
+    <arg 
+    name="joystick_deadzones" 
+    default="[20.0, 20.0, 20.0, 20.0]"/>
 
     <!-- ======================== END OF SETTINGS ========================== -->
 
@@ -19,6 +36,12 @@
             <param 
             name="controller_side" 
             value="$(arg controller_side)"/>
+            <param 
+            name="enable_joystick_deadzones" 
+            value="$(arg enable_joystick_deadzones)"/>
+            <param 
+            name="joystick_deadzones" 
+            value="$(arg joystick_deadzones)"/>
         </node>
     </group>
 </launch>
