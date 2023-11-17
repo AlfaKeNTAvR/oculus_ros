@@ -35,7 +35,7 @@ class OculusMobileBaseMapping:
         max_linear_speed_acceleration_ratio=0.5,
         max_rotation_speed_acceleration_ratio=0.05,
         max_linear_acceleration=1.0,  # Meters/second^2.
-        max_rotation_acceleration=1200,  # Degrees/second^2.
+        max_rotation_acceleration=1000,  # Degrees/second^2.
         reverse_linear_speed_scale=0.5,
     ):
         """
@@ -77,6 +77,11 @@ class OculusMobileBaseMapping:
         )
 
         self.__REVERSE_LINEAR_SPEED_SCALE = reverse_linear_speed_scale
+
+        print(
+            self.__MAX_ROTATION_ACCELERATION,
+            self.__MAX_ROTATION_SPEED,
+        )
 
         # # Private variables:
         self.__oculus_joystick = ControllerJoystick()
@@ -177,7 +182,7 @@ class OculusMobileBaseMapping:
         )
         self.__max_rotation_acceleration = message.data[1]
         self.__max_rotation_speed = (
-            self.__max_rotation_speed
+            self.__max_rotation_acceleration
             * self.__MAX_ROTATION_SPEED_ACCELERATION_RATIO
         )
 
