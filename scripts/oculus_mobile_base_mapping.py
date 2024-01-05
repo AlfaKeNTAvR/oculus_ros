@@ -31,7 +31,7 @@ class OculusMobileBaseMapping:
 
     def __init__(
         self,
-        controller_side='right',
+        controller_side='left',
         max_linear_speed_acceleration_ratio=0.5,
         max_rotation_speed_acceleration_ratio=0.05,
         max_linear_acceleration=1.0,  # Meters/second^2.

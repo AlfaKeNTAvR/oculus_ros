@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>=
+    <!-- Oculus right controller: -->
+    <include 
+    file="$(find oculus_ros)/launch/controller_feedback.launch">
+        <arg 
+        name="controller_side" 
+        value="right"/>
+        <arg 
+        name="enable_joystick_deadzones" 
+        value="true"/>
+    </include>
+
+    <!-- Oculus left controller: -->
+    <include 
+    file="$(find oculus_ros)/launch/controller_feedback.launch">
+        <arg 
+        name="controller_side" 
+        value="left"/>
+        <arg 
+        name="enable_joystick_deadzones" 
+        value="true"/>
+    </include>
+
+    <!-- Oculus mobilebase control: -->
+    <include 
+    file="$(find oculus_ros)/launch/oculus_mobilebase_control.launch">
+    </include>
+
+    <!-- Oculus chest control: -->
+    <include 
+    file="$(find gopher_ros_clearcore)/launch/oculus_chest_control.launch">
+    </include>
+
+    <!-- Oculus Kinova mapping: -->
+    <include 
+    file="$(find kinova_positional_control)/launch/oculus_mapping.launch">
+        <arg 
+        name="launch_controller_feedback" 
+        value="false"/>
+    </include>
+    
+</launch>
