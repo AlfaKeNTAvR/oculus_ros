@@ -2,6 +2,12 @@
 <launch>
     <!-- ============================ SETTINGS ============================= -->
 
+    <!-- Node frequency: the frequency [Hz] which rate.sleep() function will
+    attempt to maintain in the main_loop. -->
+    <arg 
+    name="node_frequency" 
+    default="100"/>
+
     <!-- Controller side: can be either "right" or "right". -->
     <arg 
     name="controller_side" 
@@ -33,6 +39,9 @@
         type="controller_feedback.py" 
         name="controller_feedback" 
         output="screen">
+            <param 
+            name="node_frequency" 
+            value="$(arg node_frequency)"/>
             <param 
             name="controller_side" 
             value="$(arg controller_side)"/>

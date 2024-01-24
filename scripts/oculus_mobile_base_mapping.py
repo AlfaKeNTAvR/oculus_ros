@@ -416,15 +416,25 @@ def main():
     """
 
     # # ROS node:
-    rospy.init_node('oculus_fetch_mapping')
+    rospy.init_node('oculus_mobile_base_mapping')
     rospy.on_shutdown(node_shutdown)
 
-    mobile_base_mapping = OculusMobileBaseMapping()
+    node_frequency = rospy.get_param(
+        param_name=f'{rospy.get_name()}/node_frequency',
+        default=1000,
+    )
+
+    mobile_base_mapping = OculusMobileBaseMapping(
+        controller_side='left',
+        max_linear_speed=0.5,
+    )
 
     print('\nOculus-mobile base mapping is ready.\n')
+    node_rate = rospy.Rate(node_frequency)
 
     while not rospy.is_shutdown():
         mobile_base_mapping.main_loop()
+        node_rate.sleep()
 
 
 if __name__ == '__main__':
