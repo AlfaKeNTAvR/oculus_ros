@@ -31,7 +31,7 @@ class OculusMobileBaseMapping:
 
     def __init__(
         self,
-        controller_side='right',
+        controller_side='left',
         max_linear_speed_acceleration_ratio=0.5,
         max_rotation_speed_acceleration_ratio=0.05,
         max_linear_acceleration=1.0,  # Meters/second^2.
@@ -424,17 +424,14 @@ def main():
         default=1000,
     )
 
-    mobile_base_mapping = OculusMobileBaseMapping(
-        controller_side='left',
-        max_linear_speed=0.5,
-    )
+    mobile_base_mapping = OculusMobileBaseMapping()
 
     print('\nOculus-mobile base mapping is ready.\n')
     node_rate = rospy.Rate(node_frequency)
 
     while not rospy.is_shutdown():
         mobile_base_mapping.main_loop()
-        node_rate.sleep()
+        # node_rate.sleep()
 
 
 if __name__ == '__main__':
