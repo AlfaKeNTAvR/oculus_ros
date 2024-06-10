@@ -364,6 +364,11 @@ def main():
     rospy.loginfo('\n\n\n\n\n')  # Add whitespaces to separate logs.
 
     # # ROS parameters:
+    node_frequency = rospy.get_param(
+        param_name=f'{rospy.get_name()}/node_frequency',
+        default=1000,
+    )
+
     controller_side = rospy.get_param(
         param_name=f'{rospy.get_name()}/controller_side',
         default='right',
@@ -387,9 +392,11 @@ def main():
     )
 
     rospy.on_shutdown(controller.node_shutdown)
+    node_rate = rospy.Rate(node_frequency)
 
     while not rospy.is_shutdown():
         controller.main_loop()
+        node_rate.sleep()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- ============================ SETTINGS ============================= -->
+
+
+    <!-- ======================== END OF SETTINGS ========================== -->
+
+    <!-- Right Arm: -->
+    <!-- Kinova Oculus Mapping: -->
+    <include 
+        file="$(find kinova_positional_control)/launch/oculus_mapping.launch">
+            <arg 
+            name="robot_name" 
+            value="right_arm"/>
+            <arg 
+            name="controller_side" 
+            value="right"/>
+    </include>
+
+    <!-- Starting pose: -->
+    <param  
+    name="/right_arm/positional_control/mounting_angles_deg" 
+    value="[0.0, -45.0, 90.0]"/>
+    <param  
+    name="/right_arm/positional_control/starting_pose" 
+    value="{'position': [0.55, 0.35, 0.2], 'orientation': [0.0, 0.0, 10.0]}"/>
+
+    <!-- Left Arm: -->
+    <!-- Kinova Oculus Mapping: -->
+    <include 
+        file="$(find kinova_positional_control)/launch/oculus_mapping.launch">
+            <arg 
+            name="robot_name" 
+            value="left_arm"/>
+            <arg 
+            name="controller_side" 
+            value="left"/>
+    </include>
+
+    <!-- Starting pose: -->
+    <param  
+    name="/left_arm/positional_control/mounting_angles_deg" 
+    value="[0.0, -45.0, -90.0]"/>
+    <param  
+    name="/left_arm/positional_control/starting_pose" 
+    value="{'position': [0.55, -0.35, 0.2], 'orientation': [0.0, 0.0, -10.0]}"/>
+
+    <!-- Mobile Base Oculus Mapping: -->
+    <include 
+        file="$(find oculus_ros)/launch/oculus_mobilebase_control.launch">
+    </include>
+
+    <!-- Chest Oculus Mapping: -->
+    <include 
+        file="$(find gopher_ros_clearcore)/launch/oculus_joystick_mapping.launch">
+            <arg
+            name='launch_controller_feedback'
+            value='false'/>
+            <arg 
+            name="controller_side" 
+            value="right"/>
+    </include>
+
+</launch>

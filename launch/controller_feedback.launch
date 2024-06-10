@@ -2,6 +2,12 @@
 <launch>
     <!-- ============================ SETTINGS ============================= -->
 
+    <!-- Node frequency: the frequency [Hz] which rate.sleep() function will
+    attempt to maintain in the main_loop. -->
+    <arg 
+    name="node_frequency" 
+    default="80"/>
+
     <!-- Controller side: can be either "right" or "right". -->
     <arg 
     name="controller_side" 
@@ -23,6 +29,11 @@
     name="joystick_deadzones" 
     default="[20.0, 20.0, 20.0, 20.0]"/>
 
+    <!-- If set to "true" enable rosbag recording of nodes' outputs. -->
+    <arg 
+    name="enable_rosbag_recording" 
+    default="false"/>
+
     <!-- ======================== END OF SETTINGS ========================== -->
 
 
@@ -34,6 +45,9 @@
         name="controller_feedback" 
         output="screen">
             <param 
+            name="node_frequency" 
+            value="$(arg node_frequency)"/>
+            <param 
             name="controller_side" 
             value="$(arg controller_side)"/>
             <param 
@@ -43,5 +57,23 @@
             name="joystick_deadzones" 
             value="$(arg joystick_deadzones)"/>
         </node>
+    </group>
+
+    <!-- Rosbag: -->
+    <group if="$(arg enable_rosbag_recording)">
+        <node 
+        pkg="rosbag" 
+        type="record" 
+        name="rosbag"
+        ns="/$(arg controller_side)/controller_feedback"
+        output="screen"
+        args="
+        /$(arg controller_side)/controller_feedback/is_initialized
+        /$(arg controller_side)/controller_feedback/pose
+        /$(arg controller_side)/controller_feedback/joystick
+        /$(arg controller_side)/controller_feedback/buttons
+        -o $(find oculus_ros)/bagfiles/controller_feedback/$(arg controller_side)
+        ">
+        </node>    
     </group>
 </launch>
