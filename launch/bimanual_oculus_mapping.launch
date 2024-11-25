@@ -17,14 +17,6 @@
             value="right"/>
     </include>
 
-    <!-- Starting pose: -->
-    <param  
-    name="/right_arm/positional_control/mounting_angles_deg" 
-    value="[0.0, -45.0, 90.0]"/>
-    <param  
-    name="/right_arm/positional_control/starting_pose" 
-    value="{'position': [0.55, 0.35, 0.2], 'orientation': [0.0, 0.0, 10.0]}"/>
-
     <!-- Left Arm: -->
     <!-- Kinova Oculus Mapping: -->
     <include 
@@ -36,14 +28,6 @@
             name="controller_side" 
             value="left"/>
     </include>
-
-    <!-- Starting pose: -->
-    <param  
-    name="/left_arm/positional_control/mounting_angles_deg" 
-    value="[0.0, -45.0, -90.0]"/>
-    <param  
-    name="/left_arm/positional_control/starting_pose" 
-    value="{'position': [0.55, -0.35, 0.2], 'orientation': [0.0, 0.0, -10.0]}"/>
 
     <!-- Mobile Base Oculus Mapping: -->
     <include 
