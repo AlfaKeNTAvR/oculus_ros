@@ -20,14 +20,14 @@
     name="enable_joystick_deadzones" 
     default="false"/>
 
-    <!-- Joystick deadzones [degrees]: if enable joystick deadzones is set to
-    "true" then this array values will be used as deadzones: 
-    0 - up, 1 - down, 2 - right, 3 - left. 
-    The total deadzone for each direction is the corresponding value multiplied
-    by 2. -->
+    <!-- Joystick deadzones: if enable joystick deadzones is set to
+    "true" then these values will be used as deadzones.-->
     <arg 
-    name="joystick_deadzones" 
-    default="[20.0, 20.0, 20.0, 20.0]"/>
+    name="joystick_deadzone_x" 
+    default="0.3"/>
+    <arg 
+    name="joystick_deadzone_y" 
+    default="0.3"/>
 
     <!-- If set to "true" enable rosbag recording of nodes' outputs. -->
     <arg 
@@ -54,8 +54,11 @@
             name="enable_joystick_deadzones" 
             value="$(arg enable_joystick_deadzones)"/>
             <param 
-            name="joystick_deadzones" 
-            value="$(arg joystick_deadzones)"/>
+            name="joystick_deadzone_x" 
+            value="$(arg joystick_deadzone_x)"/>
+            <param 
+            name="joystick_deadzone_y" 
+            value="$(arg joystick_deadzone_y)"/>
         </node>
     </group>
 

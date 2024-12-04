@@ -13,7 +13,6 @@ Author (s):
 
 import rospy
 import numpy as np
-import math
 from ast import (literal_eval)
 
 from std_msgs.msg import (Bool)
@@ -35,7 +34,8 @@ class ControllerFeedback:
         self,
         controller_side,
         enable_joystick_deadzones,
-        joystick_deadzones,
+        joystick_deadzone_x,
+        joystick_deadzone_y,
     ):
         """
         
@@ -51,12 +51,8 @@ class ControllerFeedback:
         # Joystick dead zones for each of the directions [degrees]. The total
         # dead zone for each direction is the value multiplied by 2 (to positive
         # and negative directions).
-        self.__JOYSTICK_DEADZONES = {
-            'up': joystick_deadzones[0],
-            'down': joystick_deadzones[1],
-            'right': joystick_deadzones[2],
-            'left': joystick_deadzones[3],
-        }
+        self.__JOYSTICK_DEADZONE_X = joystick_deadzone_x
+        self.__JOYSTICK_DEADZONE_Y = joystick_deadzone_y
 
         # # Public constants:
         self.CONTROLLER_SIDE = controller_side
@@ -249,37 +245,21 @@ class ControllerFeedback:
         if position_x == 0 and position_y == 0:
             return updated_joystick
 
-        angle = math.degrees(
-            math.atan2(updated_joystick[1], updated_joystick[0])
+        updated_joystick[0] = np.interp(
+            abs(position_x),
+            [self.__JOYSTICK_DEADZONE_X, 1.0],
+            [0.0, 1.0],
         )
+        if position_x < 0:
+            updated_joystick[0] = -updated_joystick[0]
 
-        # UP deadzone (x = 0 , y = 1):
-        if (
-            angle < 90 + self.__JOYSTICK_DEADZONES['up']
-            and angle > 90 - self.__JOYSTICK_DEADZONES['up']
-        ):
-            updated_joystick[0] = 0.0
-
-        # DOWN deadzone (x = 0 , y = -1):
-        elif (
-            angle > -90 - self.__JOYSTICK_DEADZONES['down']
-            and angle < -90 + self.__JOYSTICK_DEADZONES['down']
-        ):
-            updated_joystick[0] = 0.0
-
-        # RIGHT deadzone (x = 1 , y = 0):
-        elif (
-            angle < 0 + self.__JOYSTICK_DEADZONES['right']
-            and angle > 0 - self.__JOYSTICK_DEADZONES['down']
-        ):
-            updated_joystick[1] = 0.0
-
-        # LEFT deadzone (x = -1 , y = 0):
-        elif (
-            angle < -180 + self.__JOYSTICK_DEADZONES['left']
-            or angle > 180 - self.__JOYSTICK_DEADZONES['down']
-        ):
-            updated_joystick[1] = 0.0
+        updated_joystick[1] = np.interp(
+            abs(position_y),
+            [self.__JOYSTICK_DEADZONE_Y, 1.0],
+            [0.0, 1.0],
+        )
+        if position_y < 0:
+            updated_joystick[1] = -updated_joystick[1]
 
         return updated_joystick
 
@@ -366,7 +346,7 @@ def main():
     # # ROS parameters:
     node_frequency = rospy.get_param(
         param_name=f'{rospy.get_name()}/node_frequency',
-        default=1000,
+        default=100,
     )
 
     controller_side = rospy.get_param(
@@ -378,17 +358,21 @@ def main():
         param_name=f'{rospy.get_name()}/enable_joystick_deadzones',
         default=False,
     )
-    joystick_deadzones = literal_eval(
-        rospy.get_param(
-            param_name=f'{rospy.get_name()}/joystick_deadzones',
-            default='[15, 15, 15, 15]',
-        )
+    joystick_deadzone_x = rospy.get_param(
+        param_name=f'{rospy.get_name()}/joystick_deadzone_x',
+        default=0.3,
+    )
+
+    joystick_deadzone_y = rospy.get_param(
+        param_name=f'{rospy.get_name()}/joystick_deadzone_y',
+        default=0.3,
     )
 
     controller = ControllerFeedback(
         controller_side=controller_side,
         enable_joystick_deadzones=enable_joystick_deadzones,
-        joystick_deadzones=joystick_deadzones,
+        joystick_deadzone_x=joystick_deadzone_x,
+        joystick_deadzone_y=joystick_deadzone_y,
     )
 
     rospy.on_shutdown(controller.node_shutdown)
