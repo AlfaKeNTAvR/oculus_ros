@@ -29,6 +29,14 @@
     name="joystick_deadzone_y" 
     default="0.3"/>
 
+    <!-- Long press duration [sec]: the duration a button should be pressed for it to
+    be detected as a long press. The same value for all buttons and a joystick
+    button. -->
+    <arg 
+    name="long_press_duration" 
+    default="0.75"/>
+
+
     <!-- If set to "true" enable rosbag recording of nodes' outputs. -->
     <arg 
     name="enable_rosbag_recording" 
@@ -59,6 +67,9 @@
             <param 
             name="joystick_deadzone_y" 
             value="$(arg joystick_deadzone_y)"/>
+            <param 
+            name="long_press_duration" 
+            value="$(arg long_press_duration)"/>
         </node>
     </group>
 

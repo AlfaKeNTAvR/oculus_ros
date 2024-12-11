@@ -1,5 +1,9 @@
 bool primary_button 
+bool primary_button_long
 bool secondary_button 
+bool secondary_button_long
 bool grip_button
+bool grip_button_long
 bool trigger_button
+bool trigger_button_long
 float64 trigger_value

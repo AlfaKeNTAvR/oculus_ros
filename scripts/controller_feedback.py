@@ -24,6 +24,8 @@ from oculus_ros.msg import (
     ControllerJoystick,
 )
 
+from long_press_detector import (LongPressDetector)
+
 
 class ControllerFeedback:
     """
@@ -36,6 +38,7 @@ class ControllerFeedback:
         enable_joystick_deadzones,
         joystick_deadzone_x,
         joystick_deadzone_y,
+        long_press_duration,
     ):
         """
         
@@ -61,6 +64,14 @@ class ControllerFeedback:
         self.__controller_pose = Pose()
         self.__controller_buttons = ControllerButtons()
         self.__controller_joystick = ControllerJoystick()
+
+        self.__long_press_detectors = {
+            'primary_button': LongPressDetector(long_press_duration),
+            'secondary_button': LongPressDetector(long_press_duration),
+            'grip_button': LongPressDetector(long_press_duration),
+            'trigger_button': LongPressDetector(long_press_duration),
+            'joystick_button': LongPressDetector(long_press_duration),
+        }
 
         # # Public variables:
 
@@ -120,7 +131,7 @@ class ControllerFeedback:
     # # Service handlers:
 
     # # Topic callbacks:
-    def __controller_callback(self, message):
+    def __controller_callback(self, message: ControllerInput):
         """
 
         """
@@ -263,6 +274,46 @@ class ControllerFeedback:
 
         return updated_joystick
 
+    def __update_long_press(self):
+        """
+        
+        """
+
+        self.__controller_buttons.primary_button_long = (
+            self.__long_press_detectors['primary_button'].check_long_press(
+                self.__controller_buttons.primary_button,
+                rospy.Time.now().to_sec(),
+            )
+        )
+
+        self.__controller_buttons.secondary_button_long = (
+            self.__long_press_detectors['secondary_button'].check_long_press(
+                self.__controller_buttons.secondary_button,
+                rospy.Time.now().to_sec(),
+            )
+        )
+
+        self.__controller_buttons.grip_button_long = (
+            self.__long_press_detectors['grip_button'].check_long_press(
+                self.__controller_buttons.grip_button,
+                rospy.Time.now().to_sec(),
+            )
+        )
+
+        self.__controller_buttons.trigger_button_long = (
+            self.__long_press_detectors['trigger_button'].check_long_press(
+                self.__controller_buttons.trigger_button,
+                rospy.Time.now().to_sec(),
+            )
+        )
+
+        self.__controller_joystick.button_long = (
+            self.__long_press_detectors['joystick_button'].check_long_press(
+                self.__controller_joystick.button,
+                rospy.Time.now().to_sec(),
+            )
+        )
+
     # # Public methods:
     def main_loop(self):
         """
@@ -273,6 +324,8 @@ class ControllerFeedback:
 
         if not self.__is_initialized:
             return
+
+        self.__update_long_press()
 
         self.publish_pose()
         self.__buttons.publish(self.__controller_buttons)
@@ -362,10 +415,14 @@ def main():
         param_name=f'{rospy.get_name()}/joystick_deadzone_x',
         default=0.3,
     )
-
     joystick_deadzone_y = rospy.get_param(
         param_name=f'{rospy.get_name()}/joystick_deadzone_y',
         default=0.3,
+    )
+
+    long_press_duration = rospy.get_param(
+        param_name=f'{rospy.get_name()}/long_press_duration',
+        default=0.75,
     )
 
     controller = ControllerFeedback(
@@ -373,6 +430,7 @@ def main():
         enable_joystick_deadzones=enable_joystick_deadzones,
         joystick_deadzone_x=joystick_deadzone_x,
         joystick_deadzone_y=joystick_deadzone_y,
+        long_press_duration=long_press_duration,
     )
 
     rospy.on_shutdown(controller.node_shutdown)
