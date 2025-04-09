@@ -18,7 +18,7 @@
     if the joystick is not perfecty facing top, bottom, right, left. -->
     <arg 
     name="enable_joystick_deadzones" 
-    default="false"/>
+    default="true"/>
 
     <!-- Joystick deadzones: if enable joystick deadzones is set to
     "true" then these values will be used as deadzones.-->
