@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- ============================ SETTINGS ============================= -->
+
+    <!-- Node frequency: the frequency [Hz] which rate.sleep() function will
+    attempt to maintain in the main_loop. -->
+    <arg 
+    name="node_frequency" 
+    default="80"/>
+
+    <!-- If set to "true" enable rosbag recording of nodes' outputs. -->
+    <arg 
+    name="enable_rosbag_recording" 
+    default="false"/>
+
+    <!-- ======================== END OF SETTINGS ========================== -->
+
+
+    <!-- Headset feedback: -->
+    <node 
+    pkg="oculus_ros" 
+    type="headset_feedback.py" 
+    name="headset_feedback" 
+    output="screen">
+        <param 
+        name="node_frequency" 
+        value="$(arg node_frequency)"/>
+    </node>
+
+    <!-- Rosbag: -->
+    <group if="$(arg enable_rosbag_recording)">
+        <node 
+        pkg="rosbag" 
+        type="record" 
+        name="rosbag"
+        ns="/headset_feedback"
+        output="screen"
+        args="
+        /headset_feedback/is_initialized
+        /headset_feedback/pose
+        -o $(find oculus_ros)/bagfiles/headset_feedback/
+        ">
+        </node>    
+    </group>
+</launch>
