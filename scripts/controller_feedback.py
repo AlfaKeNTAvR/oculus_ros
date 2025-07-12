@@ -14,9 +14,13 @@ Author (s):
 import rospy
 import numpy as np
 from ast import (literal_eval)
+import tf2_ros
 
 from std_msgs.msg import (Bool)
-from geometry_msgs.msg import (Pose)
+from geometry_msgs.msg import (
+    Pose,
+    TransformStamped,
+)
 
 from oculus_ros.msg import (
     ControllerInput,
@@ -124,6 +128,10 @@ class ControllerFeedback:
             f'/{self.CONTROLLER_SIDE}ControllerInfo',
             ControllerInput,
             self.__controller_callback,
+        )
+
+        # # TF broadcaster:
+        self.__controller_pose_broadcaster = tf2_ros.StaticTransformBroadcaster(
         )
 
     # # Dependency status callbacks:
@@ -369,6 +377,31 @@ class ControllerFeedback:
         pose_message.orientation.z = orientation_quaternion[3]
 
         self.__pose.publish(pose_message)
+
+        # The controller or headset is asleep.
+        if (
+            pose_message.position.x == 0 and pose_message.position.y == 0
+            and pose_message.position.z == 0
+        ):
+            return
+
+        transform_stamped = TransformStamped()
+        transform_stamped.header.stamp = rospy.Time.now()
+        transform_stamped.header.frame_id = (f'/headset/base_link')
+        transform_stamped.child_frame_id = (
+            f'/headset/{self.CONTROLLER_SIDE}/controller_pose'
+        )
+
+        transform_stamped.transform.translation.x = (pose_message.position.x)
+        transform_stamped.transform.translation.y = (pose_message.position.y)
+        transform_stamped.transform.translation.z = (pose_message.position.z)
+
+        transform_stamped.transform.rotation.x = (pose_message.orientation.x)
+        transform_stamped.transform.rotation.y = (pose_message.orientation.y)
+        transform_stamped.transform.rotation.z = (pose_message.orientation.z)
+        transform_stamped.transform.rotation.w = (pose_message.orientation.w)
+
+        self.__controller_pose_broadcaster.sendTransform(transform_stamped)
 
     def node_shutdown(self):
         """
